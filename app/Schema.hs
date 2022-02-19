@@ -7,27 +7,40 @@ import Data.Text (Text)
 import Database.SQLite.Simple
 
 createDb :: Connection -> IO ()
-createDb conn =
+createDb conn = do
+  execute_
+    conn
+    "CREATE TABLE IF NOT EXISTS filemod (       \
+    \ fileid INTEGER PRIMARY KEY AUTOINCREMENT, \
+    \ filepath TEXT NOT NULL,                   \
+    \ modname TEXT NOT NULL                     \
+    \ )"
+
   execute_
     conn
     "CREATE TABLE IF NOT EXISTS identifiers (          \
     \   identid    INTEGER PRIMARY KEY AUTOINCREMENT,  \
     \   name       TEXT NOT NULL,                      \
     \   typestr    TEXT NOT NULL,                      \
-    \   modname    TEXT NOT NULL,                      \
     \   byteoffset INTEGER NOT NULL,                   \
-    \   fileref    TEXT                                \
+    \   fileref    INTEGER NOT NULL,                   \
+    \   FOREIGN KEY(fileref) REFERENCES filemod(filed) \
     \ )"
+
+data ModRef = ModRef
+  { modid :: Int,
+    modname :: Text,
+    filepath :: FilePath
+  }
 
 data Identifier = Identifier
   { identid :: Int,
     name :: Text,
     typestr :: Text,
-    filename :: FilePath,
     byteoffset :: Int,
-    fileref :: Maybe Text
+    fileref :: Int
   }
   deriving (Show)
 
 instance FromRow Identifier where
-  fromRow = Identifier <$> field <*> field <*> field <*> field <*> field <*> field
+  fromRow = Identifier <$> field <*> field <*> field <*> field <*> field

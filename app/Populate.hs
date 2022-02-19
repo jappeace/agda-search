@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TupleSections #-}
 
 module Populate where
 
@@ -23,6 +24,7 @@ import Agda.TypeChecking.Pretty (PrettyTCM (prettyTCM))
 import Agda.TypeChecking.Serialise (decodeFile)
 import Agda.Utils.CallStack (SrcLoc (srcLocEndCol))
 import Agda.Utils.FileName
+import Agda.Utils.Maybe
 import qualified Agda.Utils.Maybe.Strict as S
 import Agda.Utils.Pretty
 import Control.Concurrent
@@ -33,6 +35,7 @@ import Control.Monad.IO.Class
 import Data.Char (toLower)
 import Data.Foldable
 import Data.Generics
+import Data.Int
 import Data.List.NonEmpty (NonEmpty ((:|)))
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
@@ -54,6 +57,8 @@ setupTCM basep = do
   setCommandLineOptions' absp defaultOptions {optLocalInterfaces = True}
   pure (filePath absp)
 
+-- | Load an "entry-point" Agda file (which must *open* import all the
+-- modules!) and report everything that was brought into scope.
 findInScopeSet :: FilePath -> TCMT IO InScopeSet
 findInScopeSet path = do
   source <- parseSource . SourceFile =<< liftIO (absolute path)
@@ -61,6 +66,7 @@ findInScopeSet path = do
 
   let iface = crInterface cr
 
+  -- 'setScope' forces Agda to recompute the Scope's InScopeSet
   setScope (iInsideScope iface)
   _scopeInScope <$> getScope
 
@@ -88,6 +94,43 @@ makePi :: [TypedBinding] -> Expr -> Expr
 makePi [] = id
 makePi (b : bs) = Pi exprNoRange (b :| bs)
 
+findModRef :: Connection -> QName -> TCMT IO (Maybe (Int32, Int))
+findModRef conn qn =
+  case fname of
+    Just (pn, file) -> do
+      -- Do we already have a row for this module<->filepath association
+      -- in the database?
+      i <-
+        fmap (fmap fromOnly . listToMaybe) . liftIO $
+          query conn "select fileid from filemod where filepath = ? limit 1" (Only (filePath file))
+
+      case i of
+        Just i -> pure (Just (pn, i)) -- If yeah then we don't need to parse it again
+        Nothing -> do
+          -- Parse the source file to find the *top-level* module name,
+          -- since that's what links will refer to. The QName doesn't
+          -- store the top-level module name, rather it stores the
+          -- _full_ module name, including records and anon modules
+          source <- parseSource $ SourceFile file
+          let modn = srcModuleName source
+
+          -- Make sure the database knows that this file corresponds to
+          -- this module name
+          liftIO $ do
+            execute
+              conn
+              "insert into filemod (filepath, modname) values (?, ?)"
+              (filePath file, render (pretty modn))
+
+            id <- lastInsertRowId conn
+            pure . pure $ (pn, fromIntegral id)
+    Nothing -> pure Nothing
+  where
+    fname :: Maybe (Int32, AbsolutePath)
+    fname = do
+      Interval pn _ <- rangeToIntervalWithFile (nameBindingSite (qnameName qn))
+      fmap (posPos pn,) . S.toLazy $ srcFile pn
+
 insertIdentifier :: Connection -> QName -> TCMT IO ()
 insertIdentifier conn name = do
   t <- getConstInfo' name
@@ -95,20 +138,24 @@ insertIdentifier conn name = do
     Left _ -> pure ()
     Right definfo -> do
       fname <- friendlyQName name
+
       expr <- reify . killDomainNames $ defType definfo
       tystr <-
         fmap (render . pretty . killQual)
           . abstractToConcrete_
           . removeImpls
           $ expr
+
       let modname = render . pretty . qnameModule
-      case rangeToIntervalWithFile (nameBindingSite (qnameName name)) of
-        Just (Interval pn _) ->
+      fref <- findModRef conn name
+
+      case fref of
+        Just (pn, fref) ->
           liftIO $
             execute
               conn
-              "INSERT INTO identifiers (name, typestr, modname, byteoffset, fileref) VALUES (?, ?, ?, ?, ?)"
-              (Text.unpack fname, tystr, modname name, posPos pn, S.toLazy (fmap (\x -> filePath x ++ ":" ++ show (posLine pn)) (srcFile pn)))
+              "INSERT INTO identifiers (name, typestr, byteoffset, fileref) VALUES (?, ?, ?, ?)"
+              (Text.unpack fname, tystr, pn, fref)
         Nothing -> pure ()
 
 friendlyQName :: MonadIO m => QName -> TCMT m Text

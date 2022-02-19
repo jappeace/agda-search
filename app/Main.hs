@@ -15,32 +15,37 @@ import Schema
 import System.Environment
 
 main :: IO ()
-main = withConnection "test.db" $ \conn -> do
-  createDb conn
-  [Only count] <- query_ conn "select count(*) from identifiers"
+main = do
+  [basepath, main, database] <- getArgs
 
-  when (count == (0 :: Int)) $ do
-    putStrLn "Loading types..."
-    runAgda "/home/me/default/Projects/1lab.dev/src/" $ do
-      iss <- findInScopeSet "/home/me/default/Projects/1lab.dev/_build/all-pages.agda"
-      liftIO . putStrLn $ "Type checked! Populating database..."
-      traverse_ (insertIdentifier conn) iss
+  withConnection database $ \conn -> do
+    createDb conn
+    [Only count] <- query_ conn "select count(*) from identifiers"
 
-  putStrLn "Loaded types!"
-  putStr "\27[2J\27[H"
-  forever $ do
-    putStr "> "
-    queryStr <- getLine
+    when (count == (0 :: Int)) $ do
+      putStrLn "Loading types..."
+      runAgda basepath $ do
+        iss <- findInScopeSet main
 
-    sl <-
-      query
-        conn
-        "select * from identifiers where name like ?"
-        (Only (Text.singleton '%' <> Text.pack queryStr <> Text.singleton '%'))
+        liftIO . putStrLn $ "Type checked! Populating database..."
+        traverse_ (insertIdentifier conn) iss
 
-    let showit Identifier {name = name, typestr = typestr, fileref = fileref} =
-          case fileref of
-            Just fl -> name <> " : " <> typestr <> "\nDefined at: " <> fl
-            Nothing -> name <> " : " <> typestr
+    putStrLn "Loaded types!"
+    putStr "\27[2J\27[H"
+    forever $ do
+      putStr "> "
+      queryStr <- getLine
 
-    traverse_ (Text.putStrLn . showit) sl
+      sl <-
+        query
+          conn
+          "select * from identifiers where name like ?"
+          (Only (Text.singleton '%' <> Text.pack queryStr <> Text.singleton '%'))
+
+      let showit Identifier {name = name, typestr = typestr, fileref = fileref, byteoffset = bo} = do
+            [Only modname] <-
+              query conn "select modname from filemod where fileid = ?" (Only fileref)
+            let url = "https://1lab.dev/" <> modname <> ".html#" <> Text.pack (show bo)
+            pure $ name <> " : " <> typestr <> "\nDefined at: " <> url
+
+      traverse_ (Text.putStrLn <=< showit) sl
