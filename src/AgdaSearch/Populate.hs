@@ -1,10 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
 
-module Populate where
+module AgdaSearch.Populate where
 
-import Agda.Interaction.FindFile (SourceFile (..), rootNameModule)
-import qualified Agda.Interaction.FindFile as Agda
+import Agda.Utils.WithDefault
+import Agda.Interaction.FindFile (SourceFile (..))
 import Agda.Interaction.Imports
 import Agda.Interaction.Options
 import Agda.Syntax.Abstract
@@ -12,14 +12,12 @@ import Agda.Syntax.Abstract.Views
 import Agda.Syntax.Common
 import qualified Agda.Syntax.Concrete as Con
 import Agda.Syntax.Info
-import Agda.Syntax.Internal (Dom, Type, domName, unEl)
+import Agda.Syntax.Internal (Dom, Type, domName)
 import Agda.Syntax.Position
 import Agda.Syntax.Scope.Base
 import Agda.Syntax.Translation.AbstractToConcrete (abstractToConcrete_)
 import Agda.Syntax.Translation.InternalToAbstract (Reify (reify))
 import Agda.TypeChecking.Monad
-import Agda.TypeChecking.Monad.Base
-import Agda.TypeChecking.Monad.Options
 import Agda.TypeChecking.Pretty (PrettyTCM (prettyTCM))
 import Agda.TypeChecking.Serialise (decodeFile)
 import Agda.Utils.CallStack (SrcLoc (srcLocEndCol))
@@ -47,14 +45,18 @@ import qualified Data.Text.AhoCorasick.Automaton as Aho
 import Data.Traversable
 import qualified Data.Vector as V
 import Data.Vector.Mutable (IOVector)
-import qualified Data.Vector.Mutable as MV
 import Database.SQLite.Simple
-import Schema
 
 setupTCM :: FilePath -> TCMT IO String
 setupTCM basep = do
   absp <- liftIO $ absolute basep
-  setCommandLineOptions' absp defaultOptions {optLocalInterfaces = True}
+  -- https://hackage.haskell.org/package/Agda-2.6.2.2/docs/Agda-TypeChecking-Monad-Options.html#v:setCommandLineOptions-39-
+  setCommandLineOptions' absp (defaultOptions { optLocalInterfaces = True
+                                              , optPragmaOptions = (optPragmaOptions defaultOptions)
+                                                { optGuardedness = Value True
+                                                , optWarningMode = WarningMode mempty False
+                                                }
+                                              })
   pure (filePath absp)
 
 -- | Load an "entry-point" Agda file (which must *open* import all the
@@ -86,8 +88,8 @@ killQual = everywhere (mkT unQual)
 removeImpls :: Expr -> Expr
 removeImpls (Pi _ (x :| xs) e) =
   makePi (map (mapExpr removeImpls) $ filter ((/= Hidden) . getHiding) (x : xs)) (removeImpls e)
-removeImpls (Fun span arg ret) =
-  Fun span (removeImpls <$> arg) (removeImpls ret)
+removeImpls (Fun span' arg ret) =
+  Fun span' (removeImpls <$> arg) (removeImpls ret)
 removeImpls e = e
 
 makePi :: [TypedBinding] -> Expr -> Expr
@@ -100,11 +102,11 @@ findModRef conn qn =
     Just (pn, file) -> do
       -- Do we already have a row for this module<->filepath association
       -- in the database?
-      i <-
+      mi <-
         fmap (fmap fromOnly . listToMaybe) . liftIO $
           query conn "select fileid from filemod where filepath = ? limit 1" (Only (filePath file))
 
-      case i of
+      case mi of
         Just i -> pure (Just (pn, i)) -- If yeah then we don't need to parse it again
         Nothing -> do
           -- Parse the source file to find the *top-level* module name,
@@ -122,8 +124,8 @@ findModRef conn qn =
               "insert into filemod (filepath, modname) values (?, ?)"
               (filePath file, render (pretty modn))
 
-            id <- lastInsertRowId conn
-            pure . pure $ (pn, fromIntegral id)
+            id' <- lastInsertRowId conn
+            pure . pure $ (pn, fromIntegral id')
     Nothing -> pure Nothing
   where
     fname :: Maybe (Int32, AbsolutePath)
@@ -146,10 +148,10 @@ insertIdentifier conn name = do
           . removeImpls
           $ expr
 
-      let modname = render . pretty . qnameModule
-      fref <- findModRef conn name
+      let _modname = render . pretty . qnameModule
+      mfref <- findModRef conn name
 
-      case fref of
+      case mfref of
         Just (pn, fref) ->
           liftIO $
             execute
@@ -161,10 +163,12 @@ insertIdentifier conn name = do
 friendlyQName :: MonadIO m => QName -> TCMT m Text
 friendlyQName = pure . Text.pack . render . pretty
 
-runAgda :: FilePath -> TCMT IO a -> IO a
+runAgda ::
+  FilePath -> -- ^ the base directory of relative paths
+  TCMT IO a -> IO a
 runAgda basep k = do
   e <- runTCMTop $ do
-    setupTCM basep
+    _ <- setupTCM basep
     k
   case e of
     Left s -> error (show s)

@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Schema where
+module AgdaSearch.Schema where
 
 import Data.Text (Text)
 import Database.SQLite.Simple
