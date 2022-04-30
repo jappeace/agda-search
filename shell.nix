@@ -1,5 +1,7 @@
-{ pkgs ? import <nixpkgs> { }, ... }:
-pkgs.mkShell {
-  packages = [ pkgs.cabal-install ];
-  inputsFrom = [ (pkgs.haskellPackages.callCabal2nix "agda-search" ./. { }).env ];
+{ pkgs ? import ./pkgs.nix, ... }:
+pkgs.haskellPackages.shellFor {
+  packages = ps : [ ps.agda-search ];
+  buildInputs = [
+        pkgs.cabal-install
+        ];
 }
