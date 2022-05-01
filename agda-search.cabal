@@ -22,6 +22,7 @@ library
                     , syb
                     , deepseq
                     , sqlite-simple
+                    , optparse-applicative
   hs-source-dirs:   src
 
 executable agda-search
