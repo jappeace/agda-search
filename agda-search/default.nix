@@ -1,4 +1,4 @@
-{ pkgs ? import ./nix/pkgs.nix , ... }:
+{ pkgs ? import ../nix/pkgs.nix , ... }:
 let
   ignore = import (builtins.fetchGit {
                      url = "https://github.com/hercules-ci/gitignore.nix";

@@ -13,13 +13,11 @@ import AgdaSearch.Populate
 import AgdaSearch.Schema
 import Options.Applicative
 import System.IO
-import qualified AgdaSearch.Server as Server
 import AgdaSearch.Query
 import AgdaSearch.Uri
 
 data Command = CreateDB
              | CreateDBAndQuery
-             | Serve
              deriving Eq
 
 commandReader :: ReadM Command
@@ -27,7 +25,6 @@ commandReader = eitherReader $
   \case
     "createdb" -> pure CreateDB
     "createdb-and-query" -> pure CreateDBAndQuery
-    "serve" -> pure Serve
     else' -> Left $ "Unkown option: '" <> else' <> "'"
 
 
@@ -71,9 +68,7 @@ readOptions = customExecParser (prefs showHelpOnError) $ info
 main :: IO ()
 main = do
   opts <- readOptions
-  if oCommand opts == Serve then
-    Server.serve $ oDatabase opts
-  else runCli opts
+  runCli opts
 
 runCli :: Options -> IO ()
 runCli MkOptions{..} = do

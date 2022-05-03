@@ -7,24 +7,17 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ViewPatterns #-}
 
-module AgdaSearch.Server(serve) where
+module AgdaSearch.Web(serve) where
 
+import AgdaSearch.Web.Settings
 import AgdaSearch.Uri
 import Data.Pool
 import Control.Monad
-import Control.Monad.Reader
-import Control.Monad.IO.Class
-import Data.Foldable
 import qualified Data.Text as Text
-import qualified Data.Text.IO as Text
 import Database.SQLite.Simple
-import AgdaSearch.Populate
 import AgdaSearch.Schema
-import Options.Applicative
-import System.IO
 import Yesod.Core
 import qualified Data.Default as Default
-import Language.Haskell.TH.Syntax
 import Yesod.Default.Util
 import Text.Hamlet (hamletFile)
 import Data.Text(Text)
@@ -32,7 +25,6 @@ import Yesod.Form.Types
 import Yesod.Form.Functions
 import Yesod.Form.Fields
 import AgdaSearch.Query
-
 
 data RoutedApp = MkRoutedApp { appSqlite :: Pool Connection }
 
@@ -92,7 +84,8 @@ makeFoundation :: FilePath -> IO RoutedApp
 makeFoundation sqlitePath =
   MkRoutedApp <$> createPool (open sqlitePath) close 1 5 10
 
-serve :: FilePath -> IO ()
-serve path = do
-  x <- makeFoundation path
-  warp 3000 x
+serve :: Settings -> IO ()
+serve settings@MkSettings{..} = do
+  print ("running with" :: String, settings)
+  x <- makeFoundation dbPath
+  warp port x
