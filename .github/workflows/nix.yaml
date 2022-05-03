@@ -17,4 +17,5 @@ jobs:
         nix_path: nixpkgs=channel:nixos-unstable
 
     - run: nix-build nix/ci.nix
-    - run: nix-shell --run "echo OK"
+    - run: nix-shell agda-search/shell.nix --run "echo OK"
+    - run: nix-shell agda-search-web/shell.nix --run "echo OK"
