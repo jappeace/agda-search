@@ -12,3 +12,4 @@ future) type.
 + [ ] add 1lab indexing
 + [ ] Type search
 + [ ] Syntax highlighting
++ [ ] Record queries and show pagnated on main page for seo
