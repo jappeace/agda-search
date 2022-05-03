@@ -28,6 +28,11 @@ library
                     , mtl
                     , text
                     , envparse
+                    , lens-regex
+                    , regex-base
+                    , regex-posix
+                    , lens
+                    , filepath
   hs-source-dirs:   src
 
 executable agda-search-web

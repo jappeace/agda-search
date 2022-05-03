@@ -21,7 +21,8 @@
         <tr>
           <td> 
             $maybe ref <- mref
-              <a href=@{FileR (modname ref) (byteoffset identifier) }>
+
+              <a data-x="^{Text.pack $ show ref}" href="@{FileR (Text.pack $ filepath ref)}#^{(Text.pack $ show $ byteoffset identifier)}">
                 ^{name identifier} 
               : ^{typestr identifier}
             $nothing
