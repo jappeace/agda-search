@@ -31,6 +31,9 @@ import Text.Regex.Posix (Regex)
 import Text.Regex.Lens
 import Control.Lens
 import qualified Data.Text.IO as Text
+import qualified Text.Blaze.Html5 as B
+import qualified Text.Blaze.Html5.Attributes as BA
+import Data.String (fromString)
 
 allDots :: Regex
 allDots = [Regex.r|\.|]
@@ -79,7 +82,17 @@ getFileR name = do
   $(logInfo) $ "opening " <> Text.pack fullPath
 
   res <- liftIO $ Text.readFile $ sources </> postfixed
-  appLayout $ [whamlet| kkk ^{res} |]
+
+  let lines :: [(Char,Int)]
+      lines = zip (Text.unpack res) [0..]
+
+      html :: Html
+      html = B.pre $
+            B.code $
+            foldMap (\(txt,count) -> (B.span B.! BA.id (fromString ("char-" <> show count))) (B.toHtml txt)) lines
+
+
+  appLayout $ toWidget html
 
   -- redirect $ _1labFile name offset
 

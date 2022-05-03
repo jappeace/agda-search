@@ -22,7 +22,7 @@
           <td> 
             $maybe ref <- mref
 
-              <a data-x="^{Text.pack $ show ref}" href="@{FileR (Text.pack $ filepath ref)}#^{(Text.pack $ show $ byteoffset identifier)}">
+              <a data-x="^{Text.pack $ show ref}" href="@{FileR (Text.pack $ filepath ref)}#char-^{(Text.pack $ show $ byteoffset identifier)}">
                 ^{name identifier} 
               : ^{typestr identifier}
             $nothing

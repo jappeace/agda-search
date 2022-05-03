@@ -33,6 +33,7 @@ library
                     , regex-posix
                     , lens
                     , filepath
+                    , blaze-html
   hs-source-dirs:   src
 
 executable agda-search-web
