@@ -30,14 +30,15 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import Database.SQLite.Simple
 
-setupTCM :: FilePath -> TCMT IO String
-setupTCM basep = do
+setupTCM :: Bool -> FilePath -> TCMT IO String
+setupTCM isCubical basep = do
   absp <- liftIO $ absolute basep
   -- https://hackage.haskell.org/package/Agda-2.6.2.2/docs/Agda-TypeChecking-Monad-Options.html#v:setCommandLineOptions-39-
   setCommandLineOptions' absp (defaultOptions { optLocalInterfaces = True
                                               , optPragmaOptions = (optPragmaOptions defaultOptions)
                                                 { optGuardedness = Value True
                                                 , optWarningMode = WarningMode mempty False
+                                                , optCubical = isCubical
                                                 }
                                               })
   pure (filePath absp)
@@ -147,12 +148,12 @@ friendlyQName :: MonadIO m => QName -> TCMT m Text
 friendlyQName = pure . Text.pack . render . pretty
 
 runAgda ::
-  FilePath -- ^ the base directory of relative paths
+  Bool -> FilePath -- ^ the base directory of relative paths
   -> TCMT IO a
   -> IO a
-runAgda basep k = do
+runAgda isCubical basep k = do
   e <- runTCMTop $ do
-    _ <- setupTCM basep
+    _ <- setupTCM isCubical basep
     k
   case e of
     Left s -> error (show s)

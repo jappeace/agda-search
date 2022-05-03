@@ -7,7 +7,10 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ViewPatterns #-}
 
-module AgdaSearch.Web(serve) where
+module AgdaSearch.Web(
+  serve
+  , resourcesRoutedApp
+  ) where
 
 import System.FilePath
 import Text.Regex.Base()

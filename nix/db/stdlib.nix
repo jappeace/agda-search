@@ -1,4 +1,4 @@
-{pkgs ? import ./pkgs.nix }:
+{pkgs ? import ../pkgs.nix }:
 let
   std-lib = pkgs.agdaPackages.standard-library;
 

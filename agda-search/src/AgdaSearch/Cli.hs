@@ -33,6 +33,7 @@ data Options = MkOptions
   , oMain     :: FilePath
   , oDatabase :: FilePath
   , oCommand  :: Command
+  , oIsCubical  :: Bool
   }
 
 
@@ -42,6 +43,7 @@ options = MkOptions
   <*> strArgument (metavar "MAIN"      <> help "An agda file that imports all searchable modules")
   <*> strArgument (metavar "DB"        <> help "sqlite db file, should remain the same for caching")
   <*> (option commandReader (help "command, either createdb or createdb-and-query, defaulting to the latter" <> long "command") <|> pure CreateDBAndQuery)
+  <*> flag False True (long "cubical" <> help "whether to enable cubical agda")
 
 readOptions :: IO Options
 readOptions = customExecParser (prefs showHelpOnError) $ info
@@ -78,7 +80,7 @@ runCli MkOptions{..} = do
 
     when (count == (0 :: Int)) $ do
       putStrLn "Loading types..."
-      runAgda oBasePath $ do
+      runAgda oIsCubical oBasePath $ do
         iss <- findInScopeSet oMain
 
         liftIO . putStrLn $ "Type checked! Populating database..."
