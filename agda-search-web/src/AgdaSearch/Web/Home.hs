@@ -9,6 +9,8 @@
 
 module AgdaSearch.Web.Home(
   getHomeR
+  , getHomeStdLibR
+  , getHome1LabR
   ) where
 
 
@@ -33,26 +35,34 @@ data SearchForm = MkSearchForm
   , sfDb    :: Database
   } deriving Show
 
-searchForm :: Html -> MForm (Handler) (FormResult SearchForm, Widget)
-searchForm = renderDivs $
+searchForm :: Database -> Html -> MForm (Handler) (FormResult SearchForm, Widget)
+searchForm defDb = renderDivs $
   MkSearchForm
   <$> areq (searchField True) ("") Nothing
-  <*> areq (selectFieldList [("1lab" :: Text.Text, DB1Lab), ("stdlib", DBStdLib)]) "package" (Just DBStdLib)
+  <*> areq (selectFieldList [("1lab" :: Text.Text, DB1Lab), ("stdlib", DBStdLib)]) "" (Just defDb)
 
 homeWidget :: Database -> Widget -> [Text] -> [(Identifier, Maybe ModRef)] -> Handler Html
 homeWidget database searchWidget failures identifiers =
   appLayout $(widgetFileNoReload Default.def "home")
 
+getHome1LabR :: Handler Html
+getHome1LabR = genericHome DB1Lab showResults
+
+getHomeStdLibR :: Handler Html
+getHomeStdLibR = genericHome DBStdLib showResults
+
 getHomeR :: Handler Html
-getHomeR = do
-  ((result, searchWidget), _) <- runFormGet searchForm
-  case result of
-      FormMissing -> do
-          $(logInfo) "No form was send with the request, displaying default"
-          homeWidget DBStdLib searchWidget [] []
-      FormFailure failures -> do
-          homeWidget DBStdLib searchWidget failures []
-      FormSuccess form -> do
+getHomeR = genericHome DBStdLib $ \_ form -> do
+  params <- reqGetParams <$> getRequest
+
+  -- this weird hack allows us to do agdasearch.com/1lab and have it
+  -- set to 1lab by default with no state
+  case sfDb form of
+    DB1Lab   -> redirect (Home1LabR, params)
+    DBStdLib -> redirect (HomeStdLibR, params)
+
+showResults :: Widget -> SearchForm -> Handler Html
+showResults searchWidget form =  do
           $(logInfo) $ "searching for " <> Text.pack (show form)
           let search = sfQuery form
               database = sfDb form
@@ -75,3 +85,15 @@ getHomeR = do
                 -- TOOD warn on nothing
                 pure (identifier, ref)
           homeWidget database searchWidget [] identifiers
+
+genericHome :: Database -> (Widget -> SearchForm -> Handler Html) -> Handler Html
+genericHome defDb onSucces = do
+  ((result, searchWidget), _) <- runFormGet $ searchForm defDb
+  case result of
+      FormMissing -> do
+          $(logInfo) "No form was send with the request, displaying default"
+          homeWidget defDb searchWidget [] []
+      FormFailure failures -> do
+          homeWidget defDb searchWidget failures []
+      FormSuccess form -> do
+        onSucces searchWidget form

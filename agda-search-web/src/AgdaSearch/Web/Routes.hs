@@ -34,6 +34,8 @@ mkYesodData "App" [parseRoutes|
 /                      HomeR      GET
 /file/#Text            FileR      GET
 /refer/1lab/#Text/#Int Refer1labR GET
+/1lab                  Home1LabR  GET
+/stdlib                HomeStdLibR   GET
 |]
 
 instance Yesod App
