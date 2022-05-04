@@ -36,7 +36,8 @@
                 ^{name identifier} 
               : ^{typestr identifier}
   <footer>
-    Special thanks to <a href="https://amelia.how/">Amelia</a> for doing all the heavy lifiting. Sources can be found 
-    <a href="https://github.com/plt-amy/agda-search">here</a>.
+    Maintained by <a href"https://jappie.me">Jappie</a>.
+    Special thanks to <a href="https://amelia.how/">Amelia</a>.
+    Sources can be found <a href="https://github.com/jappeace/agda-search">here</a>.
     
   
