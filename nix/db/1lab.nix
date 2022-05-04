@@ -19,6 +19,7 @@ let
   sources = builtins.fetchGit {
     url = "https://github.com/plt-amy/1lab";
     rev = "e7f3da6c3ef5054c791abb6e26eccf097c6b6a59";
+    ref = "main";
   };
 
 in
