@@ -23,6 +23,10 @@ pkgs.runCommand "search-index.db" {} ''
     set -xe
     cp -R ${sources}/* ./
     chmod 700 -R ./*
+    sed -i "s/^open //" ./src/index.lagda.md
+    cat ./src/index.lagda.md
     ${shakefile}/bin/1lab-shake _build/all-pages.agda -j || echo "thx, we just needed all-pages.agda with appropriate modules"
-    "${pkgs.haskellPackages.agda-search}"/bin/agda-search ./ ./_build/all-pages.agda $out --command createdb --cubical
+    cat _build/all-pages.agda
+
+    "${pkgs.haskellPackages.agda-search}"/bin/agda-search ./ ./index.lagda.md $out --command createdb --cubical
   ''
