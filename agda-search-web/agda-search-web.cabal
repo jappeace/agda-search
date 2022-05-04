@@ -9,6 +9,10 @@ extra-source-files: CHANGELOG.md
 library
   exposed-modules: AgdaSearch.Web
                    , AgdaSearch.Web.Settings
+                   , AgdaSearch.Web.File
+                   , AgdaSearch.Web.Home
+                   , AgdaSearch.Web.Layout
+                   , AgdaSearch.Web.Routes
   ghc-options: -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints -Wincomplete-record-updates -Widentities -Wcpp-undef -fwarn-tabs -Wpartial-fields -fdefer-diagnostics
   default-language: Haskell2010
   build-depends:    base            ^>=4.14.3.0
