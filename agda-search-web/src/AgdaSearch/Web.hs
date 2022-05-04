@@ -13,6 +13,7 @@ module AgdaSearch.Web(
   serve
   ) where
 
+import AgdaSearch.Web.Refer
 import Text.Regex.Base()
 import AgdaSearch.Web.Settings
 import Data.Pool

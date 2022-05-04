@@ -28,13 +28,9 @@ import Yesod.Form.Functions
 import Yesod.Form.Fields
 import AgdaSearch.Query
 
-data Databases = DB1Lab
-               | DBStdLib
-               deriving (Show, Eq)
-
 data SearchForm = MkSearchForm
   { sfQuery :: Text
-  , sfDb    :: Databases
+  , sfDb    :: Database
   } deriving Show
 
 searchForm :: Html -> MForm (Handler) (FormResult SearchForm, Widget)
@@ -43,8 +39,8 @@ searchForm = renderDivs $
   <$> areq (searchField True) ("") Nothing
   <*> areq (selectFieldList [("1lab" :: Text.Text, DB1Lab), ("stdlib", DBStdLib)]) "package" (Just DBStdLib)
 
-homeWidget :: Widget -> [Text] -> [(Identifier, Maybe ModRef)] -> Handler Html
-homeWidget searchWidget failures identifiers =
+homeWidget :: Database -> Widget -> [Text] -> [(Identifier, Maybe ModRef)] -> Handler Html
+homeWidget database searchWidget failures identifiers =
   appLayout $(widgetFileNoReload Default.def "home")
 
 getHomeR :: Handler Html
@@ -53,26 +49,29 @@ getHomeR = do
   case result of
       FormMissing -> do
           $(logInfo) "No form was send with the request, displaying default"
-          homeWidget searchWidget [] []
+          homeWidget DBStdLib searchWidget [] []
       FormFailure failures -> do
-          homeWidget searchWidget failures []
+          homeWidget DBStdLib searchWidget failures []
       FormSuccess form -> do
           $(logInfo) $ "searching for " <> Text.pack (show form)
           let search = sfQuery form
-              poolSelect =  case sfDb form of
-                    DB1Lab -> appSqliteStdLib
-                    DBStdLib -> appSqlite1Lab
+              database = sfDb form
+              poolSelect =  case database of
+                    DB1Lab -> appSqlite1Lab
+                    DBStdLib -> appSqliteStdLib
           pool <- poolSelect <$> getYesod
           $(logInfo) "runnign sql"
 
           identifiers <-
             withRunInIO $ \runYesod -> do
             withResource pool $ \conn -> do
-              runYesod $ $(logInfo) "getting identifiers"
               identfiers <- getIdentifiers conn (Text.unpack search)
               forM identfiers $ \identifier -> do
-                runYesod $ $(logInfo) $ "getting modref for " <> Text.pack (show identifier)
                 ref <- getModRef conn (fileref identifier)
+                case ref of
+                  Nothing -> runYesod $ $logWarn $ "Nothing result for modref on " <> Text.pack (show identifier)
+                  _ -> pure ()
+
                 -- TOOD warn on nothing
                 pure (identifier, ref)
-          homeWidget searchWidget [] identifiers
+          homeWidget database searchWidget [] identifiers

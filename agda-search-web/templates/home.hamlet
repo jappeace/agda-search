@@ -21,10 +21,16 @@
         <tr>
           <td> 
             $maybe ref <- mref
+              $case database
+                $of DB1Lab
+                    <a data-x="^{Text.pack $ show ref}" href="@{Refer1labR (Text.pack $ filepath ref) (byteoffset identifier)}">
+                      ^{name identifier} 
+                    : ^{typestr identifier}
+                $of DBStdLib
+                    <a data-x="^{Text.pack $ show ref}" href="@{FileR (Text.pack $ filepath ref)}#char-^{(Text.pack $ show $ byteoffset identifier)}">
+                        ^{name identifier} 
+                    : ^{typestr identifier}
 
-              <a data-x="^{Text.pack $ show ref}" href="@{FileR (Text.pack $ filepath ref)}#char-^{(Text.pack $ show $ byteoffset identifier)}">
-                ^{name identifier} 
-              : ^{typestr identifier}
             $nothing
               <a href="#">
                 ^{name identifier} 

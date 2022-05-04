@@ -23,12 +23,17 @@ data App = MkApp
   , appSettings :: Settings
   }
 
+data Database = DB1Lab
+               | DBStdLib
+               deriving (Show, Eq)
+
 instance RenderMessage App FormMessage where
     renderMessage _ _ = defaultFormMessage
 
 mkYesodData "App" [parseRoutes|
-/                HomeR      GET
-/file/#Text      FileR      GET
+/                      HomeR      GET
+/file/#Text            FileR      GET
+/refer/1lab/#Text/#Int Refer1labR GET
 |]
 
 instance Yesod App
