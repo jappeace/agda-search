@@ -39,15 +39,6 @@ library
 executable agda-search-web
     main-is:          Main.hs
     build-depends:    base            ^>=4.14.3.0
-                    , Agda            == 2.6.2
-                    , text            == 1.2.*
-                    , containers      == 0.6.5.*
-                    , vector          == 0.12.*
-                    , alfred-margaret ^>= 1.1.0.0
-                    , hashable
-                    , syb
-                    , deepseq
-                    , sqlite-simple
                     , agda-search-web
     hs-source-dirs:   app
     default-language: Haskell2010

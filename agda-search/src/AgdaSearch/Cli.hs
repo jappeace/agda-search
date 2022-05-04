@@ -15,6 +15,7 @@ import Options.Applicative
 import System.IO
 import AgdaSearch.Query
 import AgdaSearch.Uri
+import Agda.Syntax.Common
 
 data Command = CreateDB
              | CreateDBAndQuery
@@ -33,7 +34,7 @@ data Options = MkOptions
   , oMain     :: FilePath
   , oDatabase :: FilePath
   , oCommand  :: Command
-  , oIsCubical  :: Bool
+  , oIsCubical  :: Maybe Cubical
   , oGaurdedness :: Bool
   }
 
@@ -50,7 +51,7 @@ options = MkOptions
   <*> strArgument (metavar "MAIN"      <> help "An agda file that imports all searchable modules")
   <*> strArgument (metavar "DB"        <> help "sqlite db file, should remain the same for caching")
   <*> (option commandReader (help "command, either createdb or createdb-and-query, defaulting to the latter" <> long "command") <|> pure CreateDBAndQuery)
-  <*> flag False True (long "cubical" <> help "whether to enable cubical agda")
+  <*> flag Nothing (Just CFull) (long "cubical" <> help "whether to enable cubical agda")
   <*> flag False True (long "gaurdedness" <> help "whether to enable gaurdedness")
 
 readOptions :: IO Options

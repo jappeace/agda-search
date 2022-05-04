@@ -32,7 +32,7 @@ import qualified Data.Text as Text
 import Database.SQLite.Simple
 
 data TCMOpts = MkTCMOpts
-  { tIsCubical :: Bool
+  { tIsCubical :: Maybe Cubical
   , tIsGaurdedness :: Bool
   , tBasePath :: FilePath -- ^ the base directory of relative paths
   }

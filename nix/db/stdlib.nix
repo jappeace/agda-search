@@ -14,7 +14,7 @@ let
   '';
 
 in
-pkgs.runCommand "search-index.db" {} ''
+pkgs.runCommand "std-lib.db" {} ''
     set -xe
     cp -R ${std-lib-with-all}/* ./
     chmod 700 -R ./*

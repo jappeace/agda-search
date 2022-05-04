@@ -22,13 +22,9 @@ let
   };
 
 in
-pkgs.stdenv.mkDerivation {
-    name = "1lab-db";
-    src = sources;
-    buildInputs = default.deps ++ [default.texlive];
-    LANG="C.UTF-8";
-    buildPhase = ''
-        set -xe
-        ${pkgs.haskellPackages.agda-search}/bin/agda-search ./ ./src/index.lagda.md $out --command createdb --cubical
-    '';
-}
+pkgs.runCommand "1lab.db" {} ''
+    set -xe
+    cp -R ${sources}/* ./
+    chmod 700 -R ./*
+    ${pkgs.haskellPackages.agda-search}/bin/agda-search ./ ./src/index.lagda.md $out --command createdb --cubical
+  ''
