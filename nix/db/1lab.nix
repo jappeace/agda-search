@@ -29,7 +29,6 @@ pkgs.stdenv.mkDerivation {
     LANG="C.UTF-8";
     buildPhase = ''
         set -xe
-        1lab-shake all -j
         ${pkgs.haskellPackages.agda-search}/bin/agda-search ./ ./src/index.lagda.md $out --command createdb --cubical
     '';
 }

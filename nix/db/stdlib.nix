@@ -18,5 +18,5 @@ pkgs.runCommand "search-index.db" {} ''
     set -xe
     cp -R ${std-lib-with-all}/* ./
     chmod 700 -R ./*
-    "${pkgs.haskellPackages.agda-search}"/bin/agda-search ./ ./All.agda $out --command createdb
+    "${pkgs.haskellPackages.agda-search}"/bin/agda-search ./ ./All.agda $out --command createdb --gaurdedness
   ''

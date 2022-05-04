@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module AgdaSearch.Populate where
 
@@ -30,15 +31,21 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import Database.SQLite.Simple
 
-setupTCM :: Bool -> FilePath -> TCMT IO String
-setupTCM isCubical basep = do
-  absp <- liftIO $ absolute basep
+data TCMOpts = MkTCMOpts
+  { tIsCubical :: Bool
+  , tIsGaurdedness :: Bool
+  , tBasePath :: FilePath -- ^ the base directory of relative paths
+  }
+
+setupTCM :: TCMOpts -> TCMT IO String
+setupTCM MkTCMOpts{..} = do
+  absp <- liftIO $ absolute tBasePath
   -- https://hackage.haskell.org/package/Agda-2.6.2.2/docs/Agda-TypeChecking-Monad-Options.html#v:setCommandLineOptions-39-
   setCommandLineOptions' absp (defaultOptions { optLocalInterfaces = True
                                               , optPragmaOptions = (optPragmaOptions defaultOptions)
-                                                { optGuardedness = Value True
+                                                { optGuardedness = Value tIsGaurdedness
                                                 , optWarningMode = WarningMode mempty False
-                                                , optCubical = isCubical
+                                                , optCubical = tIsCubical
                                                 }
                                               })
   pure (filePath absp)
@@ -148,12 +155,12 @@ friendlyQName :: MonadIO m => QName -> TCMT m Text
 friendlyQName = pure . Text.pack . render . pretty
 
 runAgda ::
-  Bool -> FilePath -- ^ the base directory of relative paths
+  TCMOpts
   -> TCMT IO a
   -> IO a
-runAgda isCubical basep k = do
+runAgda opts k = do
   e <- runTCMTop $ do
-    _ <- setupTCM isCubical basep
+    _ <- setupTCM opts
     k
   case e of
     Left s -> error (show s)

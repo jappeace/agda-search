@@ -34,8 +34,15 @@ data Options = MkOptions
   , oDatabase :: FilePath
   , oCommand  :: Command
   , oIsCubical  :: Bool
+  , oGaurdedness :: Bool
   }
 
+toTcm :: Options -> TCMOpts
+toTcm MkOptions{..} = MkTCMOpts
+  { tIsCubical = oIsCubical
+  , tIsGaurdedness = oGaurdedness
+  , tBasePath = oBasePath
+  }
 
 options :: Parser Options
 options = MkOptions
@@ -44,6 +51,7 @@ options = MkOptions
   <*> strArgument (metavar "DB"        <> help "sqlite db file, should remain the same for caching")
   <*> (option commandReader (help "command, either createdb or createdb-and-query, defaulting to the latter" <> long "command") <|> pure CreateDBAndQuery)
   <*> flag False True (long "cubical" <> help "whether to enable cubical agda")
+  <*> flag False True (long "gaurdedness" <> help "whether to enable gaurdedness")
 
 readOptions :: IO Options
 readOptions = customExecParser (prefs showHelpOnError) $ info
@@ -73,14 +81,14 @@ main = do
   runCli opts
 
 runCli :: Options -> IO ()
-runCli MkOptions{..} = do
+runCli opts@MkOptions{..} = do
   withConnection oDatabase $ \conn -> do
     createDb conn
     [Only count] <- query_ conn "select count(*) from identifiers"
 
     when (count == (0 :: Int)) $ do
       putStrLn "Loading types..."
-      runAgda oIsCubical oBasePath $ do
+      runAgda (toTcm opts) $ do
         iss <- findInScopeSet oMain
 
         liftIO . putStrLn $ "Type checked! Populating database..."
