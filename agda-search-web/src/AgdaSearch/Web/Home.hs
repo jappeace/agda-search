@@ -28,8 +28,20 @@ import Yesod.Form.Functions
 import Yesod.Form.Fields
 import AgdaSearch.Query
 
-searchForm :: Html -> MForm (Handler) (FormResult Text, Widget)
-searchForm = renderDivs $ areq (searchField True) ("") Nothing
+data Databases = DB1Lab
+               | DBStdLib
+               deriving (Show, Eq)
+
+data SearchForm = MkSearchForm
+  { sfQuery :: Text
+  , sfDb    :: Databases
+  } deriving Show
+
+searchForm :: Html -> MForm (Handler) (FormResult SearchForm, Widget)
+searchForm = renderDivs $
+  MkSearchForm
+  <$> areq (searchField True) ("") Nothing
+  <*> areq (selectFieldList [("1lab" :: Text.Text, DB1Lab), ("stdlib", DBStdLib)]) "package" (Just DBStdLib)
 
 homeWidget :: Widget -> [Text] -> [(Identifier, Maybe ModRef)] -> Handler Html
 homeWidget searchWidget failures identifiers =
@@ -44,8 +56,13 @@ getHomeR = do
           homeWidget searchWidget [] []
       FormFailure failures -> do
           homeWidget searchWidget failures []
-      FormSuccess search -> do
-          pool <- appSqlite <$> getYesod
+      FormSuccess form -> do
+          $(logInfo) $ "searching for " <> Text.pack (show form)
+          let search = sfQuery form
+              poolSelect =  case sfDb form of
+                    DB1Lab -> appSqliteStdLib
+                    DBStdLib -> appSqlite1Lab
+          pool <- poolSelect <$> getYesod
           $(logInfo) "runnign sql"
 
           identifiers <-

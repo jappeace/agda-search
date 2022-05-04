@@ -18,7 +18,8 @@ import Yesod.Form.Types
 import Yesod.Form.Fields
 
 data App = MkApp
-  { appSqlite :: Pool Connection
+  { appSqliteStdLib :: Pool Connection
+  , appSqlite1Lab :: Pool Connection
   , appSettings :: Settings
   }
 

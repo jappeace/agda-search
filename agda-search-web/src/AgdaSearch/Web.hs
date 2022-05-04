@@ -26,8 +26,11 @@ mkYesodDispatch "App" resourcesApp
 
 makeFoundation :: Settings -> IO App
 makeFoundation settings =
-  MkApp <$> createPool (open (dbPathStdLib settings)) close 1 5 10
-              <*> pure settings
+  MkApp <$> sqlPoolFun (dbPathStdLib settings)
+        <*> sqlPoolFun (dbPath1lab settings)
+        <*> pure settings
+  where
+    sqlPoolFun path = createPool (open path) close 1 5 10
 
 serve :: Settings -> IO ()
 serve settings@MkSettings{..} = do
