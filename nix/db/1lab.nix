@@ -13,20 +13,23 @@ let
       name = "1lab-shake";
       main = "Main.hs";
     };
+
+  default = import "${sources}";
+
   sources = builtins.fetchGit {
     url = "https://github.com/plt-amy/1lab";
     rev = "e7f3da6c3ef5054c791abb6e26eccf097c6b6a59";
   };
 
 in
-pkgs.runCommand "search-index.db" {} ''
-    set -xe
-    cp -R ${sources}/* ./
-    chmod 700 -R ./*
-    sed -i "s/^open //" ./src/index.lagda.md
-    cat ./src/index.lagda.md
-    ${shakefile}/bin/1lab-shake _build/all-pages.agda -j || echo "thx, we just needed all-pages.agda with appropriate modules"
-    cat _build/all-pages.agda
-
-    "${pkgs.haskellPackages.agda-search}"/bin/agda-search ./ ./index.lagda.md $out --command createdb --cubical
-  ''
+pkgs.stdenv.mkDerivation {
+    name = "1lab-db";
+    src = sources;
+    buildInputs = default.deps ++ [default.texlive];
+    LANG="C.UTF-8";
+    buildPhase = ''
+        set -xe
+        1lab-shake all -j
+        ${pkgs.haskellPackages.agda-search}/bin/agda-search ./ ./src/index.lagda.md $out --command createdb --cubical
+    '';
+}
