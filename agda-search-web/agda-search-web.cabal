@@ -39,6 +39,7 @@ library
                     , lens
                     , filepath
                     , blaze-html
+                    , temporary
   hs-source-dirs:   src
 
 executable agda-search-web

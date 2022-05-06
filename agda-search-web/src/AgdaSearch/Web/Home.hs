@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE LambdaCase #-} {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -20,6 +19,7 @@ import Text.Regex.Base()
 import Data.Pool
 import Control.Monad
 import qualified Data.Text as Text
+import qualified Data.Text.IO as Text
 import AgdaSearch.Schema
 import Yesod.Core
 import qualified Data.Default as Default
@@ -29,6 +29,8 @@ import Yesod.Form.Types
 import Yesod.Form.Functions
 import Yesod.Form.Fields
 import AgdaSearch.Query
+import System.IO.Temp
+import qualified System.IO as Handle
 
 data SearchForm = MkSearchForm
   { sfQuery :: Text
@@ -71,6 +73,7 @@ showResults searchWidget form =  do
                     DBStdLib -> appSqliteStdLib
           pool <- poolSelect <$> getYesod
           $(logInfo) "runnign sql"
+          liftIO $ tryParseQuery search
 
           identifiers <-
             withRunInIO $ \runYesod -> do
@@ -97,3 +100,15 @@ genericHome defDb onSucces = do
           homeWidget defDb searchWidget failures []
       FormSuccess form -> do
         onSucces searchWidget form
+
+
+tryParseQuery :: Text -> IO ()
+tryParseQuery query =
+  withSystemTempFile "agda-search-query" $ \path handle -> do
+    Handle.hPutStrLn handle "module Main where"
+    Handle.hPutStrLn handle $ Text.unpack ("main : " <> query)
+    Handle.hPutStrLn handle $ "main = error 'x'"
+    Handle.hClose handle
+
+    res <- Text.readFile path
+    print ("written", res)
