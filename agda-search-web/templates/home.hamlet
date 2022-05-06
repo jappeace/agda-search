@@ -17,8 +17,8 @@
     <table .results>
       <tr>
         <th>results
-      $forall (identifier, mref) <- identifiers
-        <tr>
+      $forall (id, (identifier, mref)) <- identifiers
+        <tr id="^{id}">
           <td> 
             $maybe ref <- mref
               $case database

@@ -6,6 +6,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE TupleSections #-}
 
 module AgdaSearch.Web.Home(
   getHomeR
@@ -42,8 +43,11 @@ searchForm defDb = renderDivs $
   <*> areq (selectFieldList [("1lab" :: Text.Text, DB1Lab), ("stdlib", DBStdLib)]) "" (Just defDb)
 
 homeWidget :: Database -> Widget -> [Text] -> [(Identifier, Maybe ModRef)] -> Handler Html
-homeWidget database searchWidget failures identifiers =
-  appLayout $(widgetFileNoReload Default.def "home")
+homeWidget database searchWidget failures ids =
+  appLayout $ do
+    identifiers <- traverse (\x -> (,x) <$> newIdent) ids
+
+    $(widgetFileNoReload Default.def "home")
 
 getHome1LabR :: Handler Html
 getHome1LabR = genericHome DB1Lab showResults
